@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -8,7 +9,11 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-const animInterval = time.Millisecond * 100
+const (
+	minHeight    = 10
+	minWidth     = 12
+	animInterval = time.Millisecond * 100
+)
 
 /*
 	the overall goal of this program is to interleave a set of text files
@@ -20,28 +25,7 @@ const animInterval = time.Millisecond * 100
 	input files are listed ad naueseum as positional arguments.
 */
 
-const dummyText = `Celia agreed with her sister, but she did not say so. The two little
-girls had been sitting by the fireside, for the April evening
-was chilly; but now the daylight had nearly faded, and Joy, rising,
-went to the door and peeped into the passage to make certain that
-Jane had lit the gas there. Satisfied on that point, she returned
-to her former seat by the fire, and continued the conversation.
-
-"I wonder if we ought to send Jane to the drawing-room to light
-the gas?" Celia suggested presently. "But, no, mother would be sure
-to ring if she wished it. Oh, the gentleman's going at last!"
-
-There was a sound of footsteps in the passage. The front door opened
-and shut, and the next minute Mrs. Wallis joined her little
-daughters. She was a tall, stately woman with a pale, handsome face,
-and hair which was prematurely grey.
-
-"My visitor kept me some time," she remarked, as she seated herself
-in an easy chair, and glanced from one to the other of the children.
-"I suppose you have been cogitating about him, and wondering who he
-could possibly be?"`
-
-func _main(input string) (err error) {
+func _main(inputs []string) (err error) {
 	s, err := tcell.NewScreen()
 	if err != nil {
 		return err
@@ -73,13 +57,54 @@ func _main(input string) (err error) {
 
 		s.Clear()
 
-		// TODO figure out width of stick
-		// TODO draw text starting at y = 0, going to height
+		// i would like to center a smudge stick that's 30% of the screen width
+		w, h := s.Size()
+		if w < minWidth || h < minHeight {
+			return errors.New("terminal is too small i'm sorry")
+		}
+
+		game := &Game{
+			Screen:   s,
+			Style:    defStyle,
+			MaxWidth: w,
+		}
+
+		smudgeWidth := w / 3
+
+		// sourceIx := 0
+		sourcePointers := map[int]int{}
+		for i := range inputs {
+			sourcePointers[i] = 0
+		}
+
+		nextChar := func() string {
+			// TODO pull characters from sources, skipping ones that run out of stuff. if all get exhausted return a dummy character.
+			return "x" // TODO
+		}
+
+		for x := smudgeWidth; x < smudgeWidth*2; x++ {
+			for y := 0; y < h; y++ {
+				game.AddDrawable(&GameObject{
+					x: x, y: y,
+					w: 1, h: 1,
+					Sprite: nextChar(),
+					Game:   game,
+				})
+			}
+		}
+
+		// TODO i want the sources to be different shades of grey
+
+		game.Update()
+		game.Draw()
+
 		// TODO burn animation
 
-		s.SetContent(0, 0, 'H', nil, defStyle)
-		s.SetContent(1, 0, 'i', nil, defStyle)
-		s.SetContent(2, 0, '!', nil, defStyle)
+		/*
+			s.SetContent(0, 0, 'H', nil, defStyle)
+			s.SetContent(1, 0, 'i', nil, defStyle)
+			s.SetContent(2, 0, '!', nil, defStyle)
+		*/
 
 		s.Show()
 	}
@@ -108,7 +133,29 @@ func inputLoop(s tcell.Screen, quit chan struct{}) func() {
 
 func main() {
 	// TODO parse each argument, read file, do the interleaving
-	err := _main(dummyText)
+
+	dummyTexts := []string{`Celia agreed with her sister, but she did not say so. The two little
+girls had been sitting by the fireside, for the April evening
+was chilly; but now the daylight had nearly faded, and Joy, rising,
+went to the door and peeped into the passage to make certain that
+Jane had lit the gas there. Satisfied on that point, she returned
+to her former seat by the fire, and continued the conversation.`,
+
+		`"I wonder if we ought to send Jane to the drawing-room to light
+the gas?" Celia suggested presently. "But, no, mother would be sure
+to ring if she wished it. Oh, the gentleman's going at last!"`,
+
+		`There was a sound of footsteps in the passage. The front door opened
+and shut, and the next minute Mrs. Wallis joined her little
+daughters. She was a tall, stately woman with a pale, handsome face,
+and hair which was prematurely grey.`,
+
+		`"My visitor kept me some time," she remarked, as she seated herself
+in an easy chair, and glanced from one to the other of the children.
+"I suppose you have been cogitating about him, and wondering who he
+could possibly be?"`}
+
+	err := _main(dummyTexts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
