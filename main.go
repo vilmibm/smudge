@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -25,7 +26,7 @@ const (
 	input files are listed ad naueseum as positional arguments.
 */
 
-func _main(inputs []string) (err error) {
+func _main(sources []string) (err error) {
 	s, err := tcell.NewScreen()
 	if err != nil {
 		return err
@@ -43,6 +44,62 @@ func _main(inputs []string) (err error) {
 	quit := make(chan struct{})
 	go inputLoop(s, quit)()
 
+	w, h := s.Size()
+	if w < minWidth || h < minHeight {
+		return errors.New("terminal is too small i'm sorry")
+	}
+
+	game := &Game{
+		Screen:   s,
+		Style:    defStyle,
+		MaxWidth: w,
+	}
+
+	smudgeWidth := w / 3
+
+	rand.Seed(time.Now().Unix())
+
+	sourceIx := 0
+	sourcePointers := map[int]int{}
+	sourceColors := map[int]int{}
+	for i := range sources {
+		sourcePointers[i] = 0
+		sourceColors[i] = rand.Intn(120)
+		sourceColors[i] += 40
+	}
+
+	nextChar := func() (string, tcell.Color) {
+		color := int32(sourceColors[sourceIx])
+		char := "x"
+
+		source := sources[sourceIx]
+		nIx := sourcePointers[sourceIx]
+		if nIx < len(source) {
+			char = string(source[nIx])
+			sourcePointers[sourceIx]++
+		}
+		sourceIx++
+		if sourceIx >= len(sources) {
+			sourceIx = 0
+		}
+
+		return char, tcell.NewRGBColor(color, color, color)
+	}
+
+	for y := 0; y < h; y++ {
+		for x := smudgeWidth; x < smudgeWidth*2; x++ {
+			char, color := nextChar()
+			so := defStyle.Foreground(color)
+			game.AddDrawable(&GameObject{
+				x: x, y: y,
+				w: 1, h: 1,
+				Sprite:        char,
+				Game:          game,
+				StyleOverride: &so,
+			})
+		}
+	}
+
 	var quitting bool
 	for {
 		select {
@@ -57,54 +114,10 @@ func _main(inputs []string) (err error) {
 
 		s.Clear()
 
-		// i would like to center a smudge stick that's 30% of the screen width
-		w, h := s.Size()
-		if w < minWidth || h < minHeight {
-			return errors.New("terminal is too small i'm sorry")
-		}
-
-		game := &Game{
-			Screen:   s,
-			Style:    defStyle,
-			MaxWidth: w,
-		}
-
-		smudgeWidth := w / 3
-
-		// sourceIx := 0
-		sourcePointers := map[int]int{}
-		for i := range inputs {
-			sourcePointers[i] = 0
-		}
-
-		nextChar := func() string {
-			// TODO pull characters from sources, skipping ones that run out of stuff. if all get exhausted return a dummy character.
-			return "x" // TODO
-		}
-
-		for x := smudgeWidth; x < smudgeWidth*2; x++ {
-			for y := 0; y < h; y++ {
-				game.AddDrawable(&GameObject{
-					x: x, y: y,
-					w: 1, h: 1,
-					Sprite: nextChar(),
-					Game:   game,
-				})
-			}
-		}
-
-		// TODO i want the sources to be different shades of grey
-
 		game.Update()
 		game.Draw()
 
 		// TODO burn animation
-
-		/*
-			s.SetContent(0, 0, 'H', nil, defStyle)
-			s.SetContent(1, 0, 'i', nil, defStyle)
-			s.SetContent(2, 0, '!', nil, defStyle)
-		*/
 
 		s.Show()
 	}
