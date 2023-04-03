@@ -267,7 +267,7 @@ func parseFiles(filenames []string) ([]string, error) {
 }
 
 func main() {
-	err := _main(os.Args)
+	err := _main(os.Args[1:])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
