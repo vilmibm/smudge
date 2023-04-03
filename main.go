@@ -18,16 +18,6 @@ const (
 	animInterval = time.Millisecond * 300
 )
 
-/*
-	the overall goal of this program is to interleave a set of text files
-	together into a smudge stick and then burn them away character by character.
-	the purpose of this program is to aid a user in meditating over their
-	computer as a place and a space as opposed to just a tool or content delivery
-	mechanism.
-
-	input files are listed ad naueseum as positional arguments.
-*/
-
 type characterCell struct {
 	game.GameObject
 	HasSpread bool
@@ -40,7 +30,7 @@ func (c *characterCell) Update() {
 		if !c.HasSpread {
 			c.Spread()
 		}
-		// TODO spawn smoke
+		c.Game.AddDrawable(newSmoke(c.Game, c.Point()))
 		c.Game.Destroy(c)
 		return
 	}
@@ -92,6 +82,36 @@ func (c *characterCell) Spread() {
 	cell := cells[ix].(*characterCell)
 
 	cell.Ignite()
+}
+
+type smoke struct {
+	game.GameObject
+}
+
+func (s *smoke) Update() {
+	if s.Y < 0 {
+		s.Game.Destroy(s)
+		return
+	}
+	color := int32(rand.Intn(120) + 60)
+	so := s.Game.Style.Foreground(tcell.NewRGBColor(color, color, color))
+	s.StyleOverride = &so
+
+	s.Y--
+	s.X += rand.Intn(3) - 1
+}
+
+func newSmoke(g *game.Game, p game.Point) *smoke {
+	so := g.Style.Foreground(tcell.NewRGBColor(160, 160, 160))
+	return &smoke{
+		GameObject: game.GameObject{
+			X: p.X, Y: p.Y,
+			W: 1, H: 1,
+			Sprite:        "*",
+			Game:          g,
+			StyleOverride: &so,
+		},
+	}
 }
 
 func _main(sources []string) (err error) {
@@ -177,25 +197,6 @@ func _main(sources []string) (err error) {
 			gg.AddDrawable(c)
 		}
 	}
-
-	// TODO each step, anything ignited has HP tick down. when HP hits zero, a smoke character is spawned
-	// TODO smoke characters move up one cell and then left or right randomly (L, R, or nothing)
-
-	/*
-
-		my big question right now is how fire should spread. i don't want a mechanical row-by-row spread; it should feel a little more chaotic and organic than that. but i also want to guarantee everything burning down.
-
-		some initial thoughts:
-
-			- the whole top row is always ignited
-			- an ignited cell will *always* spread; it will either spread randomly while it's burning down or, if it has not spread by the time it gets turned into smoke, ignites
-			- if no cells within 1 unit are ignitable, nothing happens
-
-
-		I should extend GameObject to make CharacterCell which has HP int and ignited bool plus ability to spawn smoke on death / ability to spread fire.
-
-		I shouldn't need to extend to make Smoke, I can just make a NewSmoke function that returns a plain game object with randomly set color/character and the animation algorithm.
-	*/
 
 	var quitting bool
 	for {
