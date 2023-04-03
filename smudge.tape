@@ -61,4 +61,4 @@ Set Height 450
 
 Type "smudge *" Enter
 
-Sleep 10s
+Sleep 15s
