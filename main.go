@@ -279,6 +279,9 @@ func inputLoop(s tcell.Screen, blow chan struct{}, quit chan struct{}) func() {
 }
 
 func parseFiles(filenames []string) ([]string, error) {
+	if len(filenames) == 0 {
+		return nil, fmt.Errorf("no files provided")
+	}
 	out := []string{}
 	errs := []error{}
 	for _, f := range filenames {
@@ -305,7 +308,7 @@ func parseFiles(filenames []string) ([]string, error) {
 func main() {
 	err := _main(os.Args[1:])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 }
