@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"fmt"
@@ -91,10 +91,10 @@ type Drawable interface {
 }
 
 type GameObject struct {
-	x             int
-	y             int
-	w             int
-	h             int
+	X             int
+	Y             int
+	W             int
+	H             int
 	Sprite        string
 	Game          *Game
 	StyleOverride *tcell.Style
@@ -103,12 +103,12 @@ type GameObject struct {
 func (g *GameObject) Update() {}
 
 func (g *GameObject) Transform(x, y int) {
-	g.x += x
-	g.y += y
+	g.X += x
+	g.Y += y
 }
 
 func (g *GameObject) Point() Point {
-	return Point{g.x, g.y}
+	return Point{g.X, g.Y}
 }
 
 func (g *GameObject) Draw() {
@@ -120,8 +120,8 @@ func (g *GameObject) Draw() {
 	for i, line := range lines {
 		l := line
 		w := runewidth.StringWidth(line)
-		if g.x+w > g.Game.MaxWidth {
-			space := g.Game.MaxWidth - g.x
+		if g.X+w > g.Game.MaxWidth {
+			space := g.Game.MaxWidth - g.X
 			comb := []rune{}
 			for i, r := range line {
 				if i > space {
@@ -131,7 +131,7 @@ func (g *GameObject) Draw() {
 			}
 			l = string(comb)
 		}
-		g.Game.DrawStr(g.x, g.y+i, l, style)
+		g.Game.DrawStr(g.X, g.Y+i, l, style)
 	}
 }
 

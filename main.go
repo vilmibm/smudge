@@ -27,7 +27,7 @@ const (
 */
 
 type characterCell struct {
-	GameObject
+	game.GameObject
 	HasSpread bool
 	Ignited   bool
 	HP        int
@@ -62,7 +62,7 @@ func (c *characterCell) Ignite() {
 
 func (c *characterCell) Spread() {
 	c.HasSpread = true
-	cells := c.Game.FilterGameObjects(func(d Drawable) bool {
+	cells := c.Game.FilterGameObjects(func(d game.Drawable) bool {
 		var o *characterCell
 		var ok bool
 		if o, ok = d.(*characterCell); !ok {
@@ -73,7 +73,7 @@ func (c *characterCell) Spread() {
 			return false
 		}
 
-		r := NewRay(c.Point(), o.Point())
+		r := game.NewRay(c.Point(), o.Point())
 		if r.Length() == 0 {
 			return false
 		}
@@ -115,7 +115,7 @@ func _main(sources []string) (err error) {
 		return errors.New("terminal is too small i'm sorry")
 	}
 
-	game := &Game{
+	gg := &game.Game{
 		Screen:   s,
 		Style:    defStyle,
 		MaxWidth: w,
@@ -157,19 +157,19 @@ func _main(sources []string) (err error) {
 			char, color := nextChar()
 			so := defStyle.Foreground(color)
 			c := &characterCell{
-				GameObject: GameObject{
-					x: x, y: y,
-					w: 1, h: 1,
+				GameObject: game.GameObject{
+					X: x, Y: y,
+					W: 1, H: 1,
 					Sprite:        char,
-					Game:          game,
+					Game:          gg,
 					StyleOverride: &so,
 				},
-				HP: 10,
+				HP: 20,
 			}
 			if y == 0 {
 				c.Ignited = true
 			}
-			game.AddDrawable(c)
+			gg.AddDrawable(c)
 		}
 	}
 
@@ -205,8 +205,8 @@ func _main(sources []string) (err error) {
 		}
 
 		s.Clear()
-		game.Update()
-		game.Draw()
+		gg.Update()
+		gg.Draw()
 		s.Show()
 	}
 
