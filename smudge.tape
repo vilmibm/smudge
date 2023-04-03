@@ -48,17 +48,15 @@
 
 Output smudge.gif
 
-
-
 Require echo
 
 Set Padding 0
 Set Theme "Dark Pastel"
 Set Shell "bash"
-Set FontSize 16
+Set FontSize 12
 Set Width 900
 Set Height 450
 
-Type "smudge *" Enter
+Type "smudge LICENSE main.go game/game.go" Enter
 
 Sleep 15s
