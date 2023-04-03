@@ -146,7 +146,8 @@ func _main(sourceFiles []string) (err error) {
 	s.SetStyle(defStyle)
 
 	quit := make(chan struct{})
-	go inputLoop(s, quit)()
+	blow := make(chan struct{})
+	go inputLoop(s, blow, quit)()
 
 	w, h := s.Size()
 	if w < minWidth || h < minHeight {
@@ -213,11 +214,32 @@ func _main(sourceFiles []string) (err error) {
 		}
 	}
 
+	reignite := func() {
+		topCells := gg.FilterGameObjects(func(d game.Drawable) bool {
+			var cell *characterCell
+			var ok bool
+			if cell, ok = d.(*characterCell); !ok {
+				return false
+			}
+			return !cell.Ignited
+		})
+
+		for ix, d := range topCells {
+			if ix == 10 {
+				break
+			}
+			cell := d.(*characterCell)
+			cell.Ignite()
+		}
+	}
+
 	var quitting bool
 	for {
 		select {
 		case <-quit:
 			quitting = true
+		case <-blow:
+			reignite()
 		case <-time.After(animInterval):
 		}
 
@@ -234,7 +256,7 @@ func _main(sourceFiles []string) (err error) {
 	return nil
 }
 
-func inputLoop(s tcell.Screen, quit chan struct{}) func() {
+func inputLoop(s tcell.Screen, blow chan struct{}, quit chan struct{}) func() {
 	return func() {
 		for {
 			s.Show()
@@ -245,6 +267,9 @@ func inputLoop(s tcell.Screen, quit chan struct{}) func() {
 			case *tcell.EventResize:
 				s.Sync()
 			case *tcell.EventKey:
+				if ev.Key() == tcell.KeyEnter {
+					blow <- struct{}{}
+				}
 				if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {
 					close(quit)
 				}
