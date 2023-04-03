@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -142,7 +143,10 @@ func _main(sources []string) (err error) {
 		source := sources[sourceIx]
 		nIx := sourcePointers[sourceIx]
 		if nIx < len(source) {
-			char = string(source[nIx])
+			char = strings.TrimSpace(string(source[nIx]))
+			if char == "" {
+				char = "+"
+			}
 			sourcePointers[sourceIx]++
 		}
 		sourceIx++
