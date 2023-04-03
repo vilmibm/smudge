@@ -26,6 +26,72 @@ const (
 	input files are listed ad naueseum as positional arguments.
 */
 
+type characterCell struct {
+	GameObject
+	HasSpread bool
+	Ignited   bool
+	HP        int
+}
+
+func (c *characterCell) Update() {
+	if c.HP <= 0 {
+		if !c.HasSpread {
+			c.Spread()
+		}
+		// TODO spawn smoke
+		c.Game.Destroy(c)
+		return
+	}
+
+	if c.Ignited {
+		fireColor := tcell.NewRGBColor(240, int32(rand.Intn(110)+60), 20)
+		so := c.Game.Style.Foreground(fireColor)
+		c.StyleOverride = &so
+		c.HP--
+		if !c.HasSpread {
+			if rand.Intn(10) < 4 {
+				c.Spread()
+			}
+		}
+	}
+}
+
+func (c *characterCell) Ignite() {
+	c.Ignited = true
+}
+
+func (c *characterCell) Spread() {
+	c.HasSpread = true
+	cells := c.Game.FilterGameObjects(func(d Drawable) bool {
+		var o *characterCell
+		var ok bool
+		if o, ok = d.(*characterCell); !ok {
+			return false
+		}
+
+		if o.Ignited {
+			return false
+		}
+
+		r := NewRay(c.Point(), o.Point())
+		if r.Length() == 0 {
+			return false
+		}
+
+		return r.Length() == 2
+	})
+
+	if len(cells) == 0 {
+		return
+	}
+
+	ix := rand.Intn(len(cells))
+
+	cell := cells[ix].(*characterCell)
+
+	cell.Ignite()
+}
+
 func _main(sources []string) (err error) {
 	s, err := tcell.NewScreen()
 	if err != nil {
@@ -90,15 +156,41 @@ func _main(sources []string) (err error) {
 		for x := smudgeWidth; x < smudgeWidth*2; x++ {
 			char, color := nextChar()
 			so := defStyle.Foreground(color)
-			game.AddDrawable(&GameObject{
-				x: x, y: y,
-				w: 1, h: 1,
-				Sprite:        char,
-				Game:          game,
-				StyleOverride: &so,
-			})
+			c := &characterCell{
+				GameObject: GameObject{
+					x: x, y: y,
+					w: 1, h: 1,
+					Sprite:        char,
+					Game:          game,
+					StyleOverride: &so,
+				},
+				HP: 10,
+			}
+			if y == 0 {
+				c.Ignited = true
+			}
+			game.AddDrawable(c)
 		}
 	}
+
+	// TODO each step, anything ignited has HP tick down. when HP hits zero, a smoke character is spawned
+	// TODO smoke characters move up one cell and then left or right randomly (L, R, or nothing)
+
+	/*
+
+		my big question right now is how fire should spread. i don't want a mechanical row-by-row spread; it should feel a little more chaotic and organic than that. but i also want to guarantee everything burning down.
+
+		some initial thoughts:
+
+			- the whole top row is always ignited
+			- an ignited cell will *always* spread; it will either spread randomly while it's burning down or, if it has not spread by the time it gets turned into smoke, ignites
+			- if no cells within 1 unit are ignitable, nothing happens
+
+
+		I should extend GameObject to make CharacterCell which has HP int and ignited bool plus ability to spawn smoke on death / ability to spread fire.
+
+		I shouldn't need to extend to make Smoke, I can just make a NewSmoke function that returns a plain game object with randomly set color/character and the animation algorithm.
+	*/
 
 	var quitting bool
 	for {
@@ -113,12 +205,8 @@ func _main(sources []string) (err error) {
 		}
 
 		s.Clear()
-
 		game.Update()
 		game.Draw()
-
-		// TODO burn animation
-
 		s.Show()
 	}
 

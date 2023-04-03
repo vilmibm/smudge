@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -106,6 +107,10 @@ func (g *GameObject) Transform(x, y int) {
 	g.y += y
 }
 
+func (g *GameObject) Point() Point {
+	return Point{g.x, g.y}
+}
+
 func (g *GameObject) Draw() {
 	var style *tcell.Style
 	if g.StyleOverride != nil {
@@ -128,4 +133,63 @@ func (g *GameObject) Draw() {
 		}
 		g.Game.DrawStr(g.x, g.y+i, l, style)
 	}
+}
+
+type Point struct {
+	X int
+	Y int
+}
+
+func (p Point) String() string {
+	return fmt.Sprintf("<%d, %d>", p.X, p.Y)
+}
+
+func (p Point) Equals(o Point) bool {
+	return p.X == o.X && p.Y == o.Y
+}
+
+type Ray struct {
+	Points []Point
+}
+
+func NewRay(a Point, b Point) *Ray {
+	r := &Ray{
+		Points: []Point{},
+	}
+
+	if a.Equals(b) {
+		return r
+	}
+
+	xDir := 1
+	if a.X > b.X {
+		xDir = -1
+	}
+	yDir := 1
+	if a.Y > b.Y {
+		yDir = -1
+	}
+
+	x := a.X
+	y := a.Y
+
+	for x != b.X || y != b.Y {
+		r.AddPoint(x, y)
+		if x != b.X {
+			x += xDir * 1
+		}
+		if y != b.Y {
+			y += yDir * 1
+		}
+	}
+
+	return r
+}
+
+func (r *Ray) AddPoint(x, y int) {
+	r.Points = append(r.Points, Point{X: x, Y: y})
+}
+
+func (r *Ray) Length() int {
+	return len(r.Points)
 }
