@@ -183,6 +183,8 @@ func NewRay(a Point, b Point) *Ray {
 		}
 	}
 
+	r.AddPoint(x, y)
+
 	return r
 }
 
