@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/vilmibm/smudge/game"
 )
 
 const (
 	minHeight    = 10
 	minWidth     = 12
-	animInterval = time.Millisecond * 100
+	animInterval = time.Millisecond * 300
 )
 
 /*
