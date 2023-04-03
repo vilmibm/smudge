@@ -41,7 +41,7 @@ func (c *characterCell) Update() {
 		c.StyleOverride = &so
 		c.HP--
 		if !c.HasSpread {
-			if rand.Intn(10) < 4 {
+			if rand.Intn(10) < 8 {
 				c.Spread()
 			}
 		}
@@ -77,26 +77,36 @@ func (c *characterCell) Spread() {
 		return
 	}
 
-	ix := rand.Intn(len(cells))
+	if len(cells) == 1 {
+		cell := cells[0].(*characterCell)
+		cell.Ignite()
+		return
+	}
 
-	cell := cells[ix].(*characterCell)
-
-	cell.Ignite()
+	for _, d := range cells {
+		cell := d.(*characterCell)
+		if rand.Intn(100) < 25 {
+			cell.Ignite()
+		}
+	}
 }
 
 type smoke struct {
 	game.GameObject
+	HP int
 }
 
 func (s *smoke) Update() {
-	if s.Y < 0 {
+	if s.HP == 0 || s.Y < 0 {
 		s.Game.Destroy(s)
 		return
 	}
+	spriteSheet := "....++++####"
+	s.Sprite = string(spriteSheet[s.HP-1])
 	color := int32(rand.Intn(120) + 60)
 	so := s.Game.Style.Foreground(tcell.NewRGBColor(color, color, color))
 	s.StyleOverride = &so
-
+	s.HP--
 	s.Y--
 	s.X += rand.Intn(3) - 1
 }
@@ -111,6 +121,7 @@ func newSmoke(g *game.Game, p game.Point) *smoke {
 			Game:          g,
 			StyleOverride: &so,
 		},
+		HP: 12,
 	}
 }
 
